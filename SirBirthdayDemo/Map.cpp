@@ -1,0 +1,845 @@
+// Header Files 
+#include <windows.h>
+#include <stdio.h> //for file I/O
+#include <stdlib.h> // for exit
+
+//OpenGl Related Header files
+#include <gl\GL.h>
+
+// #include "OGL.h"
+
+//Link with OpenGl import library
+#pragma comment(lib,"opengl32.lib")
+
+/*
+//Macros
+#define WIN_WIDTH 800
+#define WIN_HEIGHT 600
+
+// global function declarations
+LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
+
+//GLOBAL VARIABLE DECLARATIONS
+*/
+
+float gAlphaTransition = 0.0f; // Global variable for transition opacity
+/*
+HWND ghwnd = NULL;
+HDC ghdc = NULL;
+HGLRC ghrc = NULL;
+BOOL bFullscreen = FALSE;
+DWORD dwStyle;
+WINDOWPLACEMENT wpPrev;
+FILE* gpFile = NULL;
+BOOL bActiveWindow = FALSE;
+BOOL bEscapeKeyIsPressed = FALSE;
+
+//Entry-Point Function
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdLine, int iCmdShow)
+{
+	//Function Declarations
+	int initialize(void);
+	void render(void);
+	void update(void);
+	void uninitialize(void);
+
+	// Variable Declarations
+	WNDCLASSEX wndclass;
+	HWND hwnd = NULL;
+	MSG msg;
+	TCHAR szAppName[] = TEXT("RTR7_SSB");
+	BOOL bDone = FALSE;
+
+	// code
+	// Create Log File
+	gpFile = fopen("Log.txt", "w");
+	if (gpFile == NULL)
+	{
+		MessageBox(NULL, TEXT("Log File Creation Failed"), TEXT("Error"), MB_OK);
+		exit(0);
+	}
+	else
+	{
+		fprintf(gpFile, "SSB : Program Started Successfully\n");
+	}
+
+	// WNDCLASSEX iNITIALIZATION
+	wndclass.cbSize = sizeof(WNDCLASSEX);
+	wndclass.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+	wndclass.cbClsExtra = 0;
+	wndclass.cbWndExtra = 0;
+	wndclass.lpfnWndProc = WndProc;
+	wndclass.hInstance = hInstance;
+	wndclass.hbrBackground = (HBRUSH)GetStockObject(WHITE_BRUSH);
+	wndclass.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(MYICON));
+	wndclass.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wndclass.lpszClassName = szAppName;
+	wndclass.lpszMenuName = NULL;
+	wndclass.hIconSm = LoadIcon(hInstance, MAKEINTRESOURCE(MYICON));
+
+	// Register Above WNDCLASS
+	RegisterClassEx(&wndclass);
+
+	//Centering
+	int ScreenWidth = GetSystemMetrics(SM_CXSCREEN);
+	int ScreenHeight = GetSystemMetrics(SM_CYSCREEN);
+
+	// Create The Window
+	hwnd = CreateWindowEx(WS_EX_APPWINDOW,
+		szAppName,
+		TEXT("My First RTR7 Program : Sir's Birthday demo"),
+		WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_VISIBLE,
+		ScreenWidth / 2 - WIN_WIDTH / 2,
+		ScreenHeight / 2 - WIN_HEIGHT / 2,
+		WIN_WIDTH,
+		WIN_HEIGHT,
+		NULL,
+		NULL,
+		hInstance,
+		NULL);
+
+	//SET GLOBAL WINDOW HANDLE
+	ghwnd = hwnd;
+
+	int iResult = initialize();
+	if (iResult != 0)
+	{
+		fprintf(gpFile, "SSB : WinMain() : initialize() Failed");
+		DestroyWindow(hwnd);
+		hwnd = NULL;
+	}
+	else
+	{
+		fprintf(gpFile, "SSB : WinMain() : initialize() Succeded");
+	}
+	// Show Window
+	ShowWindow(hwnd, iCmdShow);
+
+	//Update The Window To Point Its Background
+	UpdateWindow(hwnd);
+
+	SetForegroundWindow(hwnd);
+	SetFocus(hwnd);
+
+	// Game Loop
+	while (bDone == FALSE)
+	{
+		if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+		{
+			if (msg.message == WM_QUIT)
+				bDone = TRUE;
+			else
+			{
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		}
+		else
+		{
+			if (bActiveWindow == TRUE)
+			{
+				if (bEscapeKeyIsPressed == TRUE)
+					bDone = TRUE;
+				//Render
+				render();
+				//Update
+				update();
+			}
+		}
+	}
+
+	//uninitialize
+	uninitialize();
+
+}
+
+LRESULT CALLBACK WndProc(HWND hwnd, UINT iMsg, WPARAM wParam, LPARAM lParam)
+{
+	//FUNCTION DECLARATIONS
+	void resize(int, int);
+	void toggleFullScreen(void);
+	void uninitialize(void);
+
+	// Code
+	switch (iMsg)
+	{
+	case WM_CREATE:
+		memset(&wpPrev, 0, sizeof(WINDOWPLACEMENT));
+		wpPrev.length = sizeof(WINDOWPLACEMENT);
+		break;
+	case WM_SETFOCUS:
+		bActiveWindow = TRUE;
+		break;
+	case WM_KILLFOCUS:
+		bActiveWindow = FALSE;
+		break;
+	case WM_SIZE:
+		resize(LOWORD(lParam), HIWORD(lParam));
+		break;
+	case WM_KEYDOWN:
+		switch (wParam)
+		{
+		case VK_ESCAPE:
+			bEscapeKeyIsPressed = TRUE;
+			break;
+
+		default:
+			break;
+		}
+		break;
+	case WM_CHAR:
+		switch (wParam)
+		{
+		case 'F':
+		case 'f':
+			if (bFullscreen == FALSE)
+			{
+				toggleFullScreen();
+				bFullscreen = TRUE;
+			}
+			else
+			{
+				toggleFullScreen();
+				bFullscreen = FALSE;
+			}
+			break;
+		default:
+			break;
+		}
+		break;
+
+	case WM_CLOSE:
+		uninitialize();
+		break;
+
+	case WM_DESTROY:
+		PostQuitMessage(100);
+		break;
+
+	default:
+		break;
+	}
+
+	return(DefWindowProc(hwnd, iMsg, wParam, lParam));
+}
+
+void toggleFullScreen(void)
+{
+	//Variable Declarations
+	MONITORINFO mi;
+
+	//CODE
+	if (bFullscreen == FALSE)
+	{
+		dwStyle = GetWindowLong(ghwnd, GWL_STYLE);
+
+		if (dwStyle & WS_OVERLAPPEDWINDOW)
+		{
+			memset(&mi, 0, sizeof(MONITORINFO));
+			mi.cbSize = sizeof(MONITORINFO);
+			if (GetWindowPlacement(ghwnd, &wpPrev) && GetMonitorInfo(MonitorFromWindow(ghwnd, MONITORINFOF_PRIMARY), &mi))
+			{
+				SetWindowLong(ghwnd, GWL_STYLE, dwStyle & ~WS_OVERLAPPEDWINDOW);
+				SetWindowPos(ghwnd, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOZORDER | SWP_FRAMECHANGED);
+			}
+		}
+
+		ShowCursor(FALSE);
+	}
+	else
+	{
+		SetWindowLong(ghwnd, GWL_STYLE, dwStyle | WS_OVERLAPPEDWINDOW);
+		SetWindowPlacement(ghwnd, &wpPrev);
+		SetWindowPos(ghwnd, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOOWNERZORDER | SWP_NOZORDER | SWP_FRAMECHANGED);
+		ShowCursor(TRUE);
+	}
+
+
+}
+
+int initialize(void)
+{
+	//Function Declarations
+	void resize(int, int);
+	void printGLInfo(void);
+
+	//Variable Declarations
+	PIXELFORMATDESCRIPTOR pfd;
+	int iPixelFormatIndex;
+
+	//code
+	memset(&pfd, 0, sizeof(PIXELFORMATDESCRIPTOR));
+	pfd.nSize = sizeof(PIXELFORMATDESCRIPTOR);
+	pfd.nVersion = 1; //Conventional
+	pfd.dwFlags = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	pfd.iPixelType = PFD_TYPE_RGBA;
+	pfd.cRedBits = 8;
+	pfd.cGreenBits = 8;
+	pfd.cBlueBits = 8;
+	pfd.cAlphaBits = 8;
+
+	ghdc = GetDC(ghwnd);
+	if (ghdc == NULL)
+	{
+		return -1;
+	}
+
+	iPixelFormatIndex = ChoosePixelFormat(ghdc, &pfd); //Index is 1 based not 0 based
+
+	if (iPixelFormatIndex == 0)
+		return -2;
+
+	if (SetPixelFormat(ghdc, iPixelFormatIndex, &pfd) == FALSE)
+		return -3;
+
+	ghrc = wglCreateContext(ghdc);
+	if (ghrc == NULL)
+		return -4;
+
+	if (wglMakeCurrent(ghdc, ghrc) == FALSE)
+		return -5;
+
+	//print Opengl Info
+	printGLInfo();
+
+	//Choose Screen clearing color as blue
+	glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
+
+	//Warmup resize
+	resize(WIN_WIDTH, WIN_HEIGHT);
+
+	return(0);
+}
+
+void printGLInfo(void)
+{
+	//Code
+	fprintf(gpFile, "OpenGL Vendor : %s\n", glGetString(GL_VENDOR));
+	fprintf(gpFile, "OpenGL Renderer : %s\n", glGetString(GL_RENDERER));
+	fprintf(gpFile, "OpenGL	Version : %s\n", glGetString(GL_VERSION));
+}
+
+void resize(int width, int height)
+{
+	//code
+	if (height <= 0)
+		height = 1;
+
+	glViewport(0, 0, width, height);
+
+	glMatrixMode(GL_PROJECTION);
+	glLoadIdentity();
+
+	glOrtho(-1.33f, 1.33f,
+		-1.0f, 1.0f,
+		-1.0f, 1.0f);
+
+	glMatrixMode(GL_MODELVIEW);
+	glLoadIdentity();
+
+}
+*/
+
+void Map(void)
+{
+	// Clear the color buffer
+	// glClear(GL_COLOR_BUFFER_BIT);
+
+	// glMatrixMode(GL_MODELVIEW);
+	// glLoadIdentity();
+
+	// =========================================================================
+	// 1. GUARANTEED WHITE BACKGROUND CANVAS
+	// =========================================================================
+	// Explicitly forces the background to be white across all graphics cards
+	glColor3f(1.0f, 1.0f, 1.0f);
+	glBegin(GL_QUADS);
+	glVertex3f(-2.0f, -2.0f, 0.0f);
+	glVertex3f(2.0f, -2.0f, 0.0f);
+	glVertex3f(2.0f, 2.0f, 0.0f);
+	glVertex3f(-2.0f, 2.0f, 0.0f);
+	glEnd();
+
+	// =========================================================================
+// 1. HISTORICAL CONQUEST TRANSITION (Seamless Line-Accurate Map Fill)
+// =========================================================================
+// Anchored at a central point and maps sequentially through your exact outline 
+// vertices to ensure no straight-line shortcut bleeding across your canvas.
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glColor4f(0.85f, 0.30f, 0.20f, gAlphaTransition * 0.65f); // Crimson Maroon Hue
+
+	glBegin(GL_TRIANGLE_FAN);
+	glVertex3f(0.10f, 0.10f, 0.0f); // Central interior anchor point
+
+	// --- Trace along your exact Northern/Nepal map boundaries ---
+	glVertex3f(-0.04f, 0.71f, 0.0f);
+	glVertex3f(-0.01f, 0.71f, 0.0f);
+	glVertex3f(0.09f, 0.62f, 0.0f);
+	glVertex3f(0.04f, 0.57f, 0.0f);
+	glVertex3f(0.1f, 0.58f, 0.0f);
+	glVertex3f(0.16f, 0.54f, 0.0f);
+	glVertex3f(0.21f, 0.54f, 0.0f);
+	glVertex3f(0.23f, 0.54f, 0.0f);
+	glVertex3f(0.25f, 0.5f, 0.0f);
+	glVertex3f(0.29f, 0.5f, 0.0f);
+	glVertex3f(0.3f, 0.49f, 0.0f);
+	glVertex3f(0.34f, 0.49f, 0.0f);
+	glVertex3f(0.38f, 0.46f, 0.0f);
+	glVertex3f(0.41f, 0.46f, 0.0f);
+	glVertex3f(0.44f, 0.48f, 0.0f);
+	glVertex3f(0.5f, 0.43f, 0.0f);
+	glVertex3f(0.53f, 0.44f, 0.0f);
+	glVertex3f(0.56f, 0.43f, 0.0f);
+	glVertex3f(0.57f, 0.42f, 0.0f);
+	glVertex3f(0.59f, 0.42f, 0.0f);
+	glVertex3f(0.62f, 0.4f, 0.0f);
+	glVertex3f(0.63f, 0.38f, 0.0f);
+	glVertex3f(0.65f, 0.4f, 0.0f);
+	glVertex3f(0.67f, 0.37f, 0.0f);
+	glVertex3f(0.69f, 0.39f, 0.0f);
+	glVertex3f(0.73f, 0.38f, 0.0f);
+	glVertex3f(0.74f, 0.41f, 0.0f);
+	glVertex3f(0.77f, 0.41f, 0.0f);
+	glVertex3f(0.81f, 0.43f, 0.0f);
+	glVertex3f(0.87f, 0.44f, 0.0f);
+	glVertex3f(0.89f, 0.42f, 0.0f);
+	glVertex3f(0.92f, 0.43f, 0.0f);
+	glVertex3f(0.94f, 0.42f, 0.0f);
+	glVertex3f(0.95f, 0.4f, 0.0f);
+	glVertex3f(0.99f, 0.37f, 0.0f); // Far Eastern point
+
+	// --- Trace sequentially down your exact East Coast & Tosali lines ---
+	glVertex3f(0.95f, 0.3f, 0.0f);
+	glVertex3f(0.92f, 0.28f, 0.0f);
+	glVertex3f(0.89f, 0.3f, 0.0f);
+	glVertex3f(0.86f, 0.26f, 0.0f);
+	glVertex3f(0.84f, 0.24f, 0.0f);
+	glVertex3f(0.84f, 0.22f, 0.0f);
+	glVertex3f(0.81f, 0.19f, 0.0f);
+	glVertex3f(0.83f, 0.17f, 0.0f);
+	glVertex3f(0.81f, 0.16f, 0.0f);
+	glVertex3f(0.82f, 0.14f, 0.0f);
+	glVertex3f(0.8f, 0.13f, 0.0f);
+	glVertex3f(0.77f, 0.14f, 0.0f);
+	glVertex3f(0.78f, 0.11f, 0.0f);
+	glVertex3f(0.74f, 0.09f, 0.0f); // Encompasses TOSALI cleanly
+	glVertex3f(0.73f, 0.11f, 0.0f);
+	glVertex3f(0.70f, 0.09f, 0.0f);
+	glVertex3f(0.66f, 0.07f, 0.0f);
+	glVertex3f(0.64f, 0.09f, 0.0f);
+	glVertex3f(0.61f, 0.06f, 0.0f);
+	glVertex3f(0.58f, 0.1f, 0.0f);
+	glVertex3f(0.54f, 0.06f, 0.0f);
+	glVertex3f(0.5f, 0.05f, 0.0f);
+	glVertex3f(0.49f, 0.03f, 0.0f);
+	glVertex3f(0.51f, 0.01f, 0.0f);
+	glVertex3f(0.45f, -0.05f, 0.0f);
+	glVertex3f(0.4f, -0.07f, 0.0f);
+	glVertex3f(0.38f, -0.1f, 0.0f);
+	glVertex3f(0.32f, -0.12f, 0.0f);
+	glVertex3f(0.3f, -0.15f, 0.0f);
+	glVertex3f(0.27f, -0.17f, 0.0f);
+	glVertex3f(0.25f, -0.18f, 0.0f); // Lower boundary cut-off on east coast
+
+	// --- Inland cross cut cleanly over SUVARNAGI (Deep South left out) ---
+	glVertex3f(-0.10f, -0.22f, 0.0f);
+
+	// --- Trace up your exact West Coast outline through SOPRA ---
+	glVertex3f(-0.3f, -0.4f, 0.0f);   // Encompasses SOPRA cleanly
+	glVertex3f(-0.32f, -0.38f, 0.0f);
+	glVertex3f(-0.31f, -0.36f, 0.0f);
+	glVertex3f(-0.34f, -0.31f, 0.0f);
+	glVertex3f(-0.37f, -0.28f, 0.0f);
+	glVertex3f(-0.38f, -0.26f, 0.0f);
+	glVertex3f(-0.395f, -0.23f, 0.0f);
+	glVertex3f(-0.41f, -0.21f, 0.0f);
+	glVertex3f(-0.41f, -0.18f, 0.0f);
+	glVertex3f(-0.43f, -0.17f, 0.0f);
+	glVertex3f(-0.43f, -0.15f, 0.0f);
+	glVertex3f(-0.44f, -0.14f, 0.0f);
+	glVertex3f(-0.43f, -0.13f, 0.0f);
+	glVertex3f(-0.44f, -0.01f, 0.0f); // Up to the lower edge of Gujarat bulge
+
+	// --- Inland cross cut safely back up to exclude Northwest (PATAL & TAXIL left out) ---
+	glVertex3f(-0.15f, 0.35f, 0.0f);
+	glVertex3f(-0.04f, 0.71f, 0.0f); // Closes structural loop cleanly
+	glEnd();
+	glDisable(GL_BLEND);
+
+
+	// =========================================================================
+	// 3. INDIA VECTOR OUTLINE MAP
+	// =========================================================================
+	glColor3f(0.0f, 0.0f, 0.0f); // Solid Black Map Outline for maximum contrast
+	glLineWidth(2.0f);
+	glBegin(GL_LINE_STRIP);
+	glVertex3f(-0.9f, 0.35f, 0.0f);
+	glVertex3f(-0.88f, 0.43f, 0.0f);
+	glVertex3f(-0.85f, 0.47f, 0.0f);
+	glVertex3f(-0.85f, 0.49f, 0.0f);
+	glVertex3f(-0.82f, 0.55f, 0.0f);
+	glVertex3f(-0.82f, 0.55f, 0.0f);
+	glVertex3f(-0.82f, 0.55f, 0.0f);
+	glVertex3f(-0.74f, 0.58f, 0.0f);
+	glVertex3f(-0.69f, 0.61f, 0.0f);
+	glVertex3f(-0.66f, 0.64f, 0.0f);
+	glVertex3f(-0.64f, 0.65f, 0.0f);
+	glVertex3f(-0.63f, 0.8f, 0.0f);
+	glVertex3f(-0.57f, 0.75f, 0.0f);
+	glVertex3f(-0.54f, 0.74f, 0.0f);
+	glVertex3f(-0.5f, 0.77f, 0.0f);
+	glVertex3f(-0.45f, 0.78f, 0.0f);
+	glVertex3f(-0.43f, 0.78f, 0.0f);
+	glVertex3f(-0.4f, 0.82f, 0.0f);
+	glVertex3f(-0.37f, 0.83f, 0.0f);
+	glVertex3f(-0.37f, 0.85f, 0.0f);
+	glVertex3f(-0.33f, 0.87f, 0.0f);
+	glVertex3f(-0.3f, 0.82f, 0.0f);
+	glVertex3f(-0.27f, 0.83f, 0.0f);
+	glVertex3f(-0.27f, 0.84f, 0.0f);
+	glVertex3f(-0.25f, 0.84f, 0.0f);
+	glVertex3f(-0.25f, 0.82f, 0.0f);
+	glVertex3f(-0.22f, 0.81f, 0.0f);
+	glVertex3f(-0.17f, 0.77f, 0.0f);
+	glVertex3f(-0.15f, 0.78f, 0.0f);
+	glVertex3f(-0.14f, 0.77f, 0.0f);
+	glVertex3f(-0.1f, 0.78f, 0.0f);
+	glVertex3f(-0.08f, 0.78f, 0.0f);
+	glVertex3f(-0.04f, 0.71f, 0.0f);
+	glVertex3f(-0.01f, 0.71f, 0.0f);
+	glVertex3f(0.09f, 0.62f, 0.0f);
+	glVertex3f(0.04f, 0.57f, 0.0f);
+	glVertex3f(0.1f, 0.58f, 0.0f);
+	glVertex3f(0.16f, 0.54f, 0.0f);
+	glVertex3f(0.21f, 0.54f, 0.0f);
+	glVertex3f(0.23f, 0.54f, 0.0f);
+	glVertex3f(0.25f, 0.5f, 0.0f);
+	glVertex3f(0.29f, 0.5f, 0.0f);
+	glVertex3f(0.3f, 0.49f, 0.0f);
+	glVertex3f(0.34f, 0.49f, 0.0f);
+	glVertex3f(0.38f, 0.46f, 0.0f);
+	glVertex3f(0.41f, 0.46f, 0.0f);
+	glVertex3f(0.44f, 0.48f, 0.0f);
+	glVertex3f(0.5f, 0.43f, 0.0f);
+	glVertex3f(0.53f, 0.44f, 0.0f);
+	glVertex3f(0.56f, 0.43f, 0.0f);
+	glVertex3f(0.56f, 0.43f, 0.0f);
+	glVertex3f(0.57f, 0.42f, 0.0f);
+	glVertex3f(0.59f, 0.42f, 0.0f);
+	glVertex3f(0.62f, 0.4f, 0.0f);
+	glVertex3f(0.63f, 0.38f, 0.0f);
+	glVertex3f(0.65f, 0.4f, 0.0f);
+	glVertex3f(0.67f, 0.37f, 0.0f);
+	glVertex3f(0.69f, 0.39f, 0.0f);
+	glVertex3f(0.73f, 0.38f, 0.0f);
+	glVertex3f(0.74f, 0.41f, 0.0f);
+	glVertex3f(0.77f, 0.41f, 0.0f);
+	glVertex3f(0.81f, 0.43f, 0.0f);
+	glVertex3f(0.81f, 0.43f, 0.0f);
+	glVertex3f(0.87f, 0.44f, 0.0f);
+	glVertex3f(0.89f, 0.42f, 0.0f);
+	glVertex3f(0.92f, 0.43f, 0.0f);
+	glVertex3f(0.94f, 0.42f, 0.0f);
+	glVertex3f(0.92f, 0.43f, 0.0f);
+	glVertex3f(0.95f, 0.4f, 0.0f);
+	glVertex3f(0.99f, 0.37f, 0.0f);
+	glVertex3f(0.95f, 0.3f, 0.0f);
+	glVertex3f(0.92f, 0.28f, 0.0f);
+	glVertex3f(0.89f, 0.3f, 0.0f);
+	glVertex3f(0.86f, 0.26f, 0.0f);
+	glVertex3f(0.84f, 0.24f, 0.0f);
+	glVertex3f(0.84f, 0.22f, 0.0f);
+	glVertex3f(0.81f, 0.19f, 0.0f);
+	glVertex3f(0.83f, 0.17f, 0.0f);
+	glVertex3f(0.81f, 0.16f, 0.0f);
+	glVertex3f(0.82f, 0.14f, 0.0f);
+	glVertex3f(0.8f, 0.13f, 0.0f);
+	glVertex3f(0.77f, 0.14f, 0.0f);
+	glVertex3f(0.78f, 0.11f, 0.0f);
+	glVertex3f(0.74f, 0.09f, 0.0f);
+	glVertex3f(0.73f, 0.11f, 0.0f);
+	glVertex3f(0.70f, 0.09f, 0.0f);
+	glVertex3f(0.66f, 0.07f, 0.0f);
+	glVertex3f(0.64f, 0.09f, 0.0f);
+	glVertex3f(0.61f, 0.06f, 0.0f);
+	glVertex3f(0.58f, 0.1f, 0.0f);
+	glVertex3f(0.54f, 0.06f, 0.0f);
+	glVertex3f(0.5f, 0.05f, 0.0f);
+	glVertex3f(0.49f, 0.03f, 0.0f);
+	glVertex3f(0.51f, 0.01f, 0.0f);
+	glVertex3f(0.45f, -0.05f, 0.0f);
+	glVertex3f(0.4f, -0.07f, 0.0f);
+	glVertex3f(0.38f, -0.1f, 0.0f);
+	glVertex3f(0.32f, -0.12f, 0.0f);
+	glVertex3f(0.3f, -0.15f, 0.0f);
+	glVertex3f(0.27f, -0.17f, 0.0f);
+	glVertex3f(0.25f, -0.18f, 0.0f);
+	glVertex3f(0.22f, -0.22f, 0.0f);
+	glVertex3f(0.17f, -0.24f, 0.0f);
+	glVertex3f(0.15f, -0.27f, 0.0f);
+	glVertex3f(0.13f, -0.28f, 0.0f);
+	glVertex3f(0.1f, -0.3f, 0.0f);
+	glVertex3f(0.1f, -0.32f, 0.0f);
+	glVertex3f(0.08f, -0.33f, 0.0f);
+	glVertex3f(0.06f, -0.33f, 0.0f);
+	glVertex3f(0.07f, -0.39f, 0.0f);
+	glVertex3f(0.06f, -0.41f, 0.0f);
+	glVertex3f(0.07f, -0.44f, 0.0f);
+	glVertex3f(0.03f, -0.5f, 0.0f);
+	glVertex3f(0.04f, -0.53f, 0.0f);
+	glVertex3f(0.03f, -0.55f, 0.0f);
+	glVertex3f(0.04f, -0.57f, 0.0f);
+	glVertex3f(0.03f, -0.58f, 0.0f);
+	glVertex3f(0.04f, -0.59f, 0.0f);
+	glVertex3f(0.04f, -0.63f, 0.0f);
+	glVertex3f(0.03f, -0.64f, 0.0f);
+	glVertex3f(-0.01f, -0.63f, 0.0f);
+	glVertex3f(-0.03f, -0.64f, 0.0f);
+	glVertex3f(-0.04f, -0.7f, 0.0f);
+	glVertex3f(-0.06f, -0.73f, 0.0f);
+	glVertex3f(-0.08f, -0.77f, 0.0f);
+	glVertex3f(-0.12f, -0.74f, 0.0f);
+	glVertex3f(-0.13f, -0.72f, 0.0f);
+	glVertex3f(-0.14f, -0.72f, 0.0f);
+	glVertex3f(-0.15f, -0.68f, 0.0f);
+	glVertex3f(-0.14f, -0.66f, 0.0f);
+	glVertex3f(-0.17f, -0.64f, 0.0f);
+	glVertex3f(-0.18f, -0.62f, 0.0f);
+	glVertex3f(-0.21f, -0.56f, 0.0f);
+	glVertex3f(-0.23f, -0.56f, 0.0f);
+	glVertex3f(-0.24f, -0.53f, 0.0f);
+	glVertex3f(-0.27f, -0.49f, 0.0f);
+	glVertex3f(-0.26f, -0.47f, 0.0f);
+	glVertex3f(-0.3f, -0.4f, 0.0f);
+	glVertex3f(-0.32f, -0.38f, 0.0f);
+	glVertex3f(-0.31f, -0.36f, 0.0f);
+	glVertex3f(-0.34f, -0.31f, 0.0f);
+	glVertex3f(-0.37f, -0.28f, 0.0f);
+	glVertex3f(-0.38f, -0.26f, 0.0f);
+	glVertex3f(-0.395f, -0.23f, 0.0f);
+	glVertex3f(-0.41f, -0.21f, 0.0f);
+	glVertex3f(-0.41f, -0.18f, 0.0f);
+	glVertex3f(-0.43f, -0.17f, 0.0f);
+	glVertex3f(-0.43f, -0.15f, 0.0f);
+	glVertex3f(-0.44f, -0.14f, 0.0f);
+	glVertex3f(-0.43f, -0.13f, 0.0f);
+	glVertex3f(-0.44f, -0.01f, 0.0f);
+	glVertex3f(-0.45f, -0.08f, 0.0f);
+	glVertex3f(-0.45f, -0.05f, 0.0f);
+	glVertex3f(-0.47f, -0.03f, 0.0f);
+	glVertex3f(-0.41f, 0.03f, 0.0f);
+	glVertex3f(-0.43f, 0.05f, 0.0f);
+	glVertex3f(-0.46f, 0.08f, 0.0f);
+	glVertex3f(-0.47f, 0.09f, 0.0f);
+	glVertex3f(-0.47f, 0.12f, 0.0f);
+	glVertex3f(-0.49f, 0.07f, 0.0f);
+	glVertex3f(-0.57f, 0.03f, 0.0f);
+	glVertex3f(-0.63f, 0.05f, 0.0f);
+	glVertex3f(-0.68f, 0.1f, 0.0f);
+	glVertex3f(-0.71f, 0.15f, 0.0f);
+	glVertex3f(-0.68f, 0.14f, 0.0f);
+	glVertex3f(-0.64f, 0.2f, 0.0f);
+	glVertex3f(-0.67f, 0.18f, 0.0f);
+	glVertex3f(-0.73f, 0.19f, 0.0f);
+	glVertex3f(-0.74f, 0.23f, 0.0f);
+	glVertex3f(-0.78f, 0.24f, 0.0f);
+	glVertex3f(-0.77f, 0.26f, 0.0f);
+	glVertex3f(-0.79f, 0.3f, 0.0f);
+	glVertex3f(-0.82f, 0.3f, 0.0f);
+	glVertex3f(-0.83f, 0.32f, 0.0f);
+	glVertex3f(-0.84f, 0.31f, 0.0f);
+	glVertex3f(-0.87f, 0.34f, 0.0f);
+	glVertex3f(-0.89f, 0.33f, 0.0f);
+	glVertex3f(-0.9f, 0.36f, 0.0f);
+	glVertex3f(-0.87f, 0.37f, 0.0f);
+	glVertex3f(-0.9f, 0.35f, 0.0f);
+	glEnd();
+
+	// =========================================================================
+	// 4. VECTOR TEXT LABELS (All Cities drawn in solid Black)
+	// =========================================================================
+	glColor3f(0.0f, 0.0f, 0.0f);
+	glLineWidth(1.5f);
+
+	// --- 1. PATAL ---
+	glPushMatrix();
+	glTranslatef(-0.60f, 0.35f, 0.0f); glScalef(0.02f, 0.03f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 0, 0); glVertex3f(0, 2, 0); glVertex3f(0, 2, 0); glVertex3f(1, 2, 0); glVertex3f(1, 2, 0); glVertex3f(1, 1, 0); glVertex3f(1, 1, 0); glVertex3f(0, 1, 0);
+	glVertex3f(2, 0, 0); glVertex3f(2.5f, 2, 0); glVertex3f(2.5f, 2, 0); glVertex3f(3, 0, 0); glVertex3f(2.2f, 0.7f, 0); glVertex3f(2.8f, 0.7f, 0);
+	glVertex3f(4, 2, 0); glVertex3f(5, 2, 0); glVertex3f(4.5f, 2, 0); glVertex3f(4.5f, 0, 0);
+	glVertex3f(6, 0, 0); glVertex3f(6.5f, 2, 0); glVertex3f(6.5f, 2, 0); glVertex3f(7, 0, 0); glVertex3f(6.2f, 0.7f, 0); glVertex3f(7.8f, 0.7f, 0);
+	glVertex3f(8, 2, 0); glVertex3f(8, 0, 0); glVertex3f(8, 0, 0); glVertex3f(9, 0, 0);
+	glEnd(); glPopMatrix();
+
+	// --- 2. TAXIL ---
+	glPushMatrix();
+	glTranslatef(-0.20f, 0.55f, 0.0f); glScalef(0.02f, 0.03f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 2, 0); glVertex3f(1, 2, 0); glVertex3f(0.5f, 2, 0); glVertex3f(0.5f, 0, 0);
+	glVertex3f(2, 0, 0); glVertex3f(2.5f, 2, 0); glVertex3f(2.5f, 2, 0); glVertex3f(3, 0, 0); glVertex3f(2.2f, 0.7f, 0); glVertex3f(2.8f, 0.7f, 0);
+	glVertex3f(4, 2, 0); glVertex3f(5, 0, 0); glVertex3f(4, 0, 0); glVertex3f(5, 2, 0);
+	glVertex3f(6, 2, 0); glVertex3f(6, 0, 0);
+	glVertex3f(7, 2, 0); glVertex3f(7, 0, 0); glVertex3f(7, 0, 0); glVertex3f(8, 0, 0);
+	glEnd(); glPopMatrix();
+	// --- 3. MATHURA ---
+	glPushMatrix();
+	glTranslatef(-0.10f, 0.35f, 0.0f); glScalef(0.02f, 0.03f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 0, 0); glVertex3f(0, 2, 0); glVertex3f(0, 2, 0); glVertex3f(0.5f, 1, 0); glVertex3f(0.5f, 1, 0); glVertex3f(1, 2, 0); glVertex3f(1, 2, 0); glVertex3f(1, 0, 0);
+	glVertex3f(2, 0, 0); glVertex3f(2.5f, 2, 0); glVertex3f(2.5f, 2, 0); glVertex3f(3, 0, 0); glVertex3f(2.2f, 0.7f, 0); glVertex3f(2.8f, 0.7f, 0);
+	glVertex3f(4, 2, 0); glVertex3f(5, 2, 0); glVertex3f(4.5f, 2, 0); glVertex3f(4.5f, 0, 0);
+	glVertex3f(6, 2, 0); glVertex3f(6, 0, 0); glVertex3f(7, 2, 0); glVertex3f(7, 0, 0); glVertex3f(6, 1, 0); glVertex3f(7, 1, 0);
+	glVertex3f(8, 2, 0); glVertex3f(8, 0, 0); glVertex3f(8, 0, 0); glVertex3f(9, 0, 0); glVertex3f(9, 0, 0); glVertex3f(9, 2, 0);
+	glVertex3f(10, 0, 0); glVertex3f(10, 2, 0); glVertex3f(10, 2, 0); glVertex3f(11, 2, 0); glVertex3f(11, 2, 0); glVertex3f(11, 1, 0); glVertex3f(11, 1, 0); glVertex3f(10, 1, 0); glVertex3f(10, 1, 0); glVertex3f(11, 0, 0);
+	glVertex3f(12, 0, 0); glVertex3f(12.5f, 2, 0); glVertex3f(12.5f, 2, 0); glVertex3f(13, 0, 0); glVertex3f(12.2f, 0.7f, 0); glVertex3f(12.8f, 0.7f, 0);
+	glEnd(); glPopMatrix();
+	// --- 4. VARANASI ---
+	glPushMatrix();
+	glTranslatef(0.20f, 0.30f, 0.0f); glScalef(0.015f, 0.025f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 2, 0); glVertex3f(0.5f, 0, 0); glVertex3f(0.5f, 0, 0); glVertex3f(1, 2, 0);
+	glVertex3f(2, 0, 0); glVertex3f(2.5f, 2, 0); glVertex3f(2.5f, 2, 0); glVertex3f(3, 0, 0); glVertex3f(2.2f, 0.7f, 0); glVertex3f(2.8f, 0.7f, 0);
+	glVertex3f(4, 0, 0); glVertex3f(4, 2, 0); glVertex3f(4, 2, 0); glVertex3f(5, 2, 0); glVertex3f(5, 2, 0); glVertex3f(5, 1, 0); glVertex3f(5, 1, 0); glVertex3f(4, 1, 0); glVertex3f(4, 1, 0); glVertex3f(5, 0, 0);
+	glVertex3f(6, 0, 0); glVertex3f(6.5f, 2, 0); glVertex3f(6.5f, 2, 0); glVertex3f(7, 0, 0); glVertex3f(6.2f, 0.7f, 0); glVertex3f(7.8f, 0.7f, 0);
+	glVertex3f(8, 0, 0); glVertex3f(8, 2, 0); glVertex3f(8, 2, 0); glVertex3f(9, 0, 0); glVertex3f(9, 0, 0); glVertex3f(9, 2, 0);
+	glVertex3f(10, 0, 0); glVertex3f(10.5f, 2, 0); glVertex3f(10.5f, 2, 0); glVertex3f(11, 0, 0); glVertex3f(10.2f, 0.7f, 0); glVertex3f(10.8f, 0.7f, 0);
+	glVertex3f(12, 2, 0); glVertex3f(13, 2, 0); glVertex3f(12, 2, 0); glVertex3f(12, 1, 0); glVertex3f(12, 1, 0); glVertex3f(13, 1, 0); glVertex3f(13, 1, 0); glVertex3f(13, 0, 0); glVertex3f(13, 0, 0); glVertex3f(12, 0, 0);
+	glVertex3f(14, 2, 0); glVertex3f(14, 0, 0);
+	glEnd(); glPopMatrix();
+	// --- 5. PATALIPUR ---
+	glPushMatrix();
+	glTranslatef(0.50f, 0.30f, 0.0f); glScalef(0.015f, 0.025f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 0, 0); glVertex3f(0, 2, 0); glVertex3f(0, 2, 0); glVertex3f(1, 2, 0); glVertex3f(1, 2, 0); glVertex3f(1, 1, 0); glVertex3f(1, 1, 0); glVertex3f(0, 1, 0);
+	glVertex3f(2, 0, 0); glVertex3f(2.5f, 2, 0); glVertex3f(2.5f, 2, 0); glVertex3f(3, 0, 0); glVertex3f(2.2f, 0.7f, 0); glVertex3f(2.8f, 0.7f, 0);
+	glVertex3f(4, 2, 0); glVertex3f(5, 2, 0); glVertex3f(4.5f, 2, 0); glVertex3f(4.5f, 0, 0);
+	glVertex3f(6, 0, 0); glVertex3f(6.5f, 2, 0); glVertex3f(6.5f, 2, 0); glVertex3f(7, 0, 0); glVertex3f(6.2f, 0.7f, 0); glVertex3f(7.8f, 0.7f, 0);
+	glVertex3f(8, 2, 0); glVertex3f(8, 0, 0); glVertex3f(8, 0, 0); glVertex3f(9, 0, 0);
+	glVertex3f(10, 2, 0); glVertex3f(10, 0, 0);
+	glVertex3f(11, 0, 0); glVertex3f(11, 2, 0); glVertex3f(11, 2, 0); glVertex3f(12, 2, 0); glVertex3f(12, 2, 0); glVertex3f(12, 1, 0); glVertex3f(12, 1, 0); glVertex3f(11, 1, 0);
+	glVertex3f(13, 2, 0); glVertex3f(13, 0, 0); glVertex3f(13, 0, 0); glVertex3f(14, 0, 0); glVertex3f(14, 0, 0); glVertex3f(14, 2, 0);
+	glVertex3f(15, 0, 0); glVertex3f(15, 2, 0); glVertex3f(15, 2, 0); glVertex3f(16, 2, 0); glVertex3f(16, 2, 0); glVertex3f(16, 1, 0); glVertex3f(16, 1, 0); glVertex3f(15, 1, 0); glVertex3f(15, 1, 0); glVertex3f(16, 0, 0);
+	glEnd(); glPopMatrix();
+	// --- 6. UJJAIN ---
+	glPushMatrix();
+	glTranslatef(-0.15f, 0.15f, 0.0f); glScalef(0.02f, 0.03f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 2, 0); glVertex3f(0, 0, 0); glVertex3f(0, 0, 0); glVertex3f(1, 0, 0); glVertex3f(1, 0, 0); glVertex3f(1, 2, 0);
+	glVertex3f(2, 0, 0); glVertex3f(3, 0, 0); glVertex3f(2.5f, 0, 0); glVertex3f(2.5f, 2, 0); glVertex3f(2, 2, 0); glVertex3f(3, 2, 0);
+	glVertex3f(4, 0, 0); glVertex3f(5, 0, 0); glVertex3f(4.5f, 0, 0); glVertex3f(4.5f, 2, 0); glVertex3f(4, 2, 0); glVertex3f(5, 2, 0);
+	glVertex3f(6, 0, 0); glVertex3f(6.5f, 2, 0); glVertex3f(6.5f, 2, 0); glVertex3f(7, 0, 0); glVertex3f(6.2f, 0.7f, 0); glVertex3f(6.8f, 0.7f, 0);
+	glVertex3f(8, 2, 0); glVertex3f(8, 0, 0);
+	glVertex3f(9, 0, 0); glVertex3f(9, 2, 0); glVertex3f(9, 2, 0); glVertex3f(10, 0, 0); glVertex3f(10, 0, 0); glVertex3f(10, 2, 0);
+	glEnd(); glPopMatrix();
+	// --- 7. TOSALI ---
+	glPushMatrix();
+	glTranslatef(0.38f, 0.05f, 0.0f); glScalef(0.015f, 0.025f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 2, 0); glVertex3f(1, 2, 0); glVertex3f(0.5f, 2, 0); glVertex3f(0.5f, 0, 0);
+	glVertex3f(2, 2, 0); glVertex3f(2, 0, 0); glVertex3f(2, 0, 0); glVertex3f(3, 0, 0); glVertex3f(3, 0, 0); glVertex3f(3, 2, 0); glVertex3f(2, 2, 0); glVertex3f(3, 2, 0);
+	glVertex3f(4, 2, 0); glVertex3f(5, 2, 0); glVertex3f(4, 2, 0); glVertex3f(4, 1, 0); glVertex3f(4, 1, 0); glVertex3f(5, 1, 0); glVertex3f(5, 1, 0); glVertex3f(5, 0, 0); glVertex3f(5, 0, 0); glVertex3f(4, 0, 0);
+	glVertex3f(6, 0, 0); glVertex3f(6.5f, 2, 0); glVertex3f(6.5f, 2, 0); glVertex3f(7, 0, 0); glVertex3f(6.2f, 0.7f, 0); glVertex3f(6.8f, 0.7f, 0);
+	glVertex3f(8, 2, 0); glVertex3f(8, 0, 0); glVertex3f(8, 0, 0); glVertex3f(9, 0, 0);
+	glVertex3f(10, 2, 0); glVertex3f(10, 0, 0);
+	glEnd(); glPopMatrix();
+	// --- 8. KUNDINA ---
+	glPushMatrix();
+	glTranslatef(0.0f, -0.15f, 0.0f); glScalef(0.015f, 0.025f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 2, 0); glVertex3f(0, 0, 0); glVertex3f(0, 1, 0); glVertex3f(1, 2, 0); glVertex3f(0, 1, 0); glVertex3f(1, 0, 0);
+	glVertex3f(2, 2, 0); glVertex3f(2, 0, 0); glVertex3f(2, 0, 0); glVertex3f(3, 0, 0); glVertex3f(3, 0, 0); glVertex3f(3, 2, 0);
+	glVertex3f(4, 0, 0); glVertex3f(4, 2, 0); glVertex3f(4, 2, 0); glVertex3f(5, 0, 0); glVertex3f(5, 0, 0); glVertex3f(5, 2, 0);
+	glVertex3f(6, 0, 0); glVertex3f(6, 2, 0); glVertex3f(6, 2, 0); glVertex3f(7, 1, 0); glVertex3f(6, 0, 0); glVertex3f(7, 1, 0);
+	glVertex3f(8, 2, 0); glVertex3f(8, 0, 0);
+	glVertex3f(9, 0, 0); glVertex3f(9, 2, 0); glVertex3f(9, 2, 0); glVertex3f(10, 0, 0); glVertex3f(10, 0, 0); glVertex3f(10, 2, 0);
+	glVertex3f(11, 0, 0); glVertex3f(11.5f, 2, 0); glVertex3f(11.5f, 2, 0); glVertex3f(12, 0, 0); glVertex3f(11.2f, 0.7f, 0); glVertex3f(11.8f, 0.7f, 0);
+	glEnd(); glPopMatrix();
+	// --- 9. SOPRA ---
+	glPushMatrix();
+	glTranslatef(-0.35f, -0.15f, 0.0f); glScalef(0.015f, 0.025f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 2, 0); glVertex3f(1, 2, 0); glVertex3f(0, 2, 0); glVertex3f(0, 1, 0); glVertex3f(0, 1, 0); glVertex3f(1, 1, 0); glVertex3f(1, 1, 0); glVertex3f(1, 0, 0); glVertex3f(1, 0, 0); glVertex3f(0, 0, 0);
+	glVertex3f(2, 2, 0); glVertex3f(2, 0, 0); glVertex3f(2, 2, 0); glVertex3f(3, 2, 0); glVertex3f(3, 2, 0); glVertex3f(3, 0, 0); glVertex3f(2, 0, 0); glVertex3f(3, 0, 0);
+	glVertex3f(4, 0, 0); glVertex3f(4, 2, 0); glVertex3f(4, 2, 0); glVertex3f(5, 2, 0); glVertex3f(5, 2, 0); glVertex3f(5, 1, 0); glVertex3f(5, 1, 0); glVertex3f(4, 1, 0);
+	glVertex3f(6, 0, 0); glVertex3f(6, 2, 0); glVertex3f(6, 2, 0); glVertex3f(7, 2, 0); glVertex3f(7, 2, 0); glVertex3f(7, 1, 0); glVertex3f(7, 1, 0); glVertex3f(6, 1, 0); glVertex3f(6, 1, 0); glVertex3f(7, 0, 0);
+	glVertex3f(8, 0, 0); glVertex3f(8.5f, 2, 0); glVertex3f(8.5f, 2, 0); glVertex3f(9, 0, 0); glVertex3f(8.2f, 0.7f, 0); glVertex3f(8.8f, 0.7f, 0);
+	glEnd(); glPopMatrix();
+	// --- 10. SUVARNAGI ---
+	glPushMatrix();
+	glTranslatef(-0.15f, -0.35f, 0.0f); glScalef(0.012f, 0.022f, 1.0f);
+	glBegin(GL_LINES);
+	glVertex3f(0, 2, 0); glVertex3f(1, 2, 0); glVertex3f(0, 2, 0); glVertex3f(0, 1, 0); glVertex3f(0, 1, 0); glVertex3f(1, 1, 0); glVertex3f(1, 1, 0); glVertex3f(1, 0, 0); glVertex3f(1, 0, 0); glVertex3f(0, 0, 0);
+	glVertex3f(2, 2, 0); glVertex3f(2, 0, 0); glVertex3f(2, 0, 0); glVertex3f(3, 0, 0); glVertex3f(3, 0, 0); glVertex3f(3, 2, 0);
+	glVertex3f(4, 2, 0); glVertex3f(4.5f, 0, 0); glVertex3f(4.5f, 0, 0); glVertex3f(5, 2, 0);
+	glVertex3f(6, 0, 0); glVertex3f(6.5f, 2, 0); glVertex3f(6.5f, 2, 0); glVertex3f(7, 0, 0); glVertex3f(6.2f, 0.7f, 0); glVertex3f(6.8f, 0.7f, 0);
+	glVertex3f(8, 0, 0); glVertex3f(8, 2, 0); glVertex3f(8, 2, 0); glVertex3f(9, 2, 0); glVertex3f(9, 2, 0); glVertex3f(9, 1, 0); glVertex3f(9, 1, 0); glVertex3f(8, 1, 0); glVertex3f(8, 1, 0); glVertex3f(9, 0, 0);
+	glVertex3f(10, 0, 0); glVertex3f(10, 2, 0); glVertex3f(10, 2, 0); glVertex3f(11, 0, 0); glVertex3f(11, 0, 0); glVertex3f(11, 2, 0);
+	glVertex3f(12, 0, 0); glVertex3f(12.5f, 2, 0); glVertex3f(12.5f, 2, 0); glVertex3f(13, 0, 0); glVertex3f(12.2f, 0.7f, 0); glVertex3f(12.8f, 0.7f, 0);
+	glVertex3f(14, 2, 0); glVertex3f(15, 2, 0); glVertex3f(14, 2, 0); glVertex3f(14, 0, 0); glVertex3f(14, 0, 0); glVertex3f(15, 0, 0); glVertex3f(15, 0, 0); glVertex3f(15, 1, 0); glVertex3f(14.5f, 1, 0); glVertex3f(15, 1, 0);
+	glVertex3f(16, 2, 0); glVertex3f(16, 0, 0);
+	glEnd(); glPopMatrix();
+	// Push front buffer data onto screen
+	// SwapBuffers(ghdc);
+}
+
+/*
+void update(void)
+{
+	// Smoothly increases the alpha transparency over time
+	if (gAlphaTransition < 1.0f)
+	{
+		gAlphaTransition += 0.003f;
+	}
+}
+
+void uninitialize(void)
+{
+	//code
+	// if exiting in full screen first restore and then proceed
+	if (bFullscreen == TRUE)
+	{
+		toggleFullScreen();
+		bFullscreen = FALSE;
+	}
+
+	//first check the current contex and if it is then unmake it
+	if (wglGetCurrentContext() == ghrc)
+	{
+		wglMakeCurrent(NULL, NULL);
+
+	}
+
+	//Destroy the rendering contex
+	if (ghrc)
+	{
+		wglDeleteContext(ghrc);
+		ghrc = NULL;
+	}
+
+	//release the device contex
+	if (ghdc)
+	{
+		ReleaseDC(ghwnd, ghdc);
+		ghdc = NULL;
+	}
+
+	//destroy window
+	if (ghwnd)
+	{
+		DestroyWindow(ghwnd);
+		ghwnd = NULL;
+
+	}
+
+	//Close Log File
+	if (gpFile)
+	{
+		fprintf(gpFile, "SSB : Program Terminated Successfully\n");
+		fclose(gpFile);
+		gpFile = NULL;
+	}
+}
+*/

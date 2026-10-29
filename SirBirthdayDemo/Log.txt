@@ -1,0 +1,3 @@
+Program started successfully.
+WinMain(): Initialization() successful.
+Program terminated successfully.

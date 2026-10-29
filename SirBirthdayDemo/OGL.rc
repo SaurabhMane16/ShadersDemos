@@ -1,0 +1,4 @@
+#include "lalkila.h"
+MYICON ICON "rapidash.ico"
+
+IDBITMAP_QUOTE BITMAP sanskrit_text.bmp
