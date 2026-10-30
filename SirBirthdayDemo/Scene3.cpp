@@ -84,6 +84,8 @@ static float g_standingSageGesture = 0.0f;
 static float g_chanakyaSpeakingBlend = 0.0f;
 static BOOL g_bStandingSageSpeaking = FALSE;
 static BOOL g_bChanakyaSpeaking = FALSE;
+static BOOL g_bKingSpeaking = FALSE;
+static float g_kingMouthOpen = 0.0f;
 
 // King Emotion State: 0 = Royal Idle, 1 = Arrogant Laugh, 2 = Royal Anger
 static int rliKingMode = 0;
@@ -145,6 +147,7 @@ static void shotWide(void)
 	rliKingMode = 0;
 	g_bStandingSageSpeaking = FALSE;
 	g_bChanakyaSpeaking = FALSE;
+	g_bKingSpeaking = FALSE;
 
 	applyCameraCut();
 }
@@ -163,6 +166,7 @@ static void shotStandingSage(BOOL bSpeaking)
 	rliKingMode = 0;
 	g_bStandingSageSpeaking = bSpeaking;
 	g_bChanakyaSpeaking = FALSE;
+	g_bKingSpeaking = FALSE;
 
 	applyCameraCut();
 }
@@ -181,6 +185,7 @@ static void shotKing(int kingEmotionMode)
 	rliKingMode = kingEmotionMode;
 	g_bStandingSageSpeaking = FALSE;
 	g_bChanakyaSpeaking = FALSE;
+	g_bKingSpeaking = (kingEmotionMode == 0 || kingEmotionMode == 2);
 
 	applyCameraCut();
 }
@@ -199,6 +204,7 @@ static void shotChanakya(BOOL bSpeaking)
 	rliKingMode = 0;
 	g_bStandingSageSpeaking = FALSE;
 	g_bChanakyaSpeaking = bSpeaking;
+	g_bKingSpeaking = FALSE;
 
 	applyCameraCut();
 }
@@ -217,6 +223,7 @@ static void shotShishya(BOOL bSpeaking)
 	rliKingMode = 0;
 	g_bStandingSageSpeaking = FALSE;
 	g_bChanakyaSpeaking = bSpeaking;
+	g_bKingSpeaking = FALSE;
 
 	applyCameraCut();
 }
@@ -1133,7 +1140,7 @@ static void rliDrawKingHead(float rliTimeVal)
 	float rliBlink = (fmodf(rliTimeVal, 3.8f) < 0.12f) ? 1.0f : 0.0f;
 	float rliEyeOpen = (1.0f - rliBlink) * (1.0f - 0.55f * rliLaughBlend);
 	float rliBrowIn = 0.20f - 0.07f * rliAngerBlend + 0.04f * rliLaughBlend;
-	float rliMouthOpen = 0.06f * rliLaughBlend + 0.025f * rliAngerBlend;
+	float rliMouthOpen = 0.06f * rliLaughBlend + 0.025f * rliAngerBlend + 0.045f * g_kingMouthOpen;
 
 	// long dark hair falling behind the shoulders
 	drawFilledEllipse(0.0f, -0.05f, 0.56f, 0.70f, -0.04f, RLI_HAIR, 40);
@@ -2457,6 +2464,16 @@ void updateScene3(void)
 	}
 	g_standingSageMouthOpen += (targetSageMouth - g_standingSageMouthOpen) * 0.05f;
 
+	// Update King mouth animation if speaking (like renderStandingSageQuestionShot)
+	float targetKingMouth = 0.0f;
+	if (g_bKingSpeaking)
+	{
+		float speechWave = (0.5f + 0.5f * sinf(rliAnimTime * 2.8f)) *
+		                   (0.6f + 0.4f * sinf(rliAnimTime * 1.2f));
+		targetKingMouth = speechWave;
+	}
+	g_kingMouthOpen += (targetKingMouth - g_kingMouthOpen) * 0.08f;
+
 	// Camera Positioning: Instant Hard Cut (Movie / TV Serial) vs Smooth Steadicam
 	if (g_bInstantCameraCut)
 	{
@@ -2490,6 +2507,8 @@ void initScene3(void)
 	g_darbarAudioStartTick = 0;
 	rliAnimTime = 0.0f;
 	rliKingMode = 0;
+	g_bKingSpeaking = FALSE;
+	g_kingMouthOpen = 0.0f;
 	g_currentShot = SHOT_WIDE;
 	shotWide();
 }
@@ -2510,45 +2529,120 @@ void renderScene3(void)
 	float elapsedTime = (float)(currentTick - g_darbarAudioStartTick) / 1000.0f;
 
 	// 2. Timeline Dispatcher (Calls dedicated shot rendering functions)
-	if (elapsedTime < 12.0f)
+	if (elapsedTime < 4.0f)
 	{
-		// 0.0s to 12.0s: Grand Master Establishing Shot of the entire Darbar
+		// 0.0s to 4.0s: Grand Master Establishing Shot of the entire Darbar
 		renderWideShot();
 	}
-	else if (elapsedTime < 33.0f)
+	else if (elapsedTime < 5.5f)
 	{
-		// 12.0s to 33.0s: Standing Person confronts Chanakya
+		// 4.0s to 5.0s (on 0.4): Standing Sage first question
 		renderStandingSageQuestionShot();
 	}
-	else if (elapsedTime < 46.0f)
+	else if (elapsedTime < 6.5f)
 	{
-		// 33.0s to 46.0s: Standing Person interrogates further
+		// 5.0s to 6.0s (on 0.5): Shishya answers the question
+		renderWideShot();
+	}
+	else if (elapsedTime < 7.5f)
+	{
+		// 6.0s to 7.0s (0.6 - 0.7): Standing Sage second question
 		renderStandingSageQuestionShot();
 	}
-	else if (elapsedTime < 54.0f)
+	else if (elapsedTime < 8.7f)
+	{
+		// 7.0s to 8.7s (0.7 - 0.8): Shishya answers the question
+		renderWideShot();
+	}
+	else if (elapsedTime < 11.0f)
+	{
+		// 8.7s to 11.0s (0.9 - 10.0): Standing Sage question
+		renderStandingSageQuestionShot();
+	}
+	else if (elapsedTime < 14.0f)
+	{
+		// 11.0s to 14.0s: Grand Court Wide View
+		renderWideShot();
+	}
+	else if (elapsedTime < 21.0f)
+	{
+		// 14.0s to 21.0s: Chanakya response shot
+		renderChanakyaResponseShot();
+	}
+	else if (elapsedTime < 22.5f)
+	{
+		// 0:21 - 0:22 (21.0s to 22.0s): Standing Sage question
+		renderStandingSageQuestionShot();
+	}
+	else if (elapsedTime < 24.5f)
+	{
+		// 22 - 23 (22.0s to 24.0s): Shishya answer (Wide Shot)
+		renderWideShot();
+	}
+	else if (elapsedTime < 25.5f)
+	{
+		// 24 - 25 (24.0s to 25.0s): Standing Sage question
+		renderStandingSageQuestionShot();
+	}
+	else if (elapsedTime < 27.0f)
+	{
+		// 25 - 26 (25.0s to 26.5s): Shishya answer (Wide Shot)
+		renderWideShot();
+	}
+	else if (elapsedTime < 28.5f)
+	{
+		// 25 - 26 (25.0s to 26.5s): Shishya answer (Wide Shot)
+		renderStandingSageQuestionShot();
+	}
+	else if (elapsedTime < 40.0f)
+	{
+		// 25 - 26 (25.0s to 26.5s): Shishya answer (Wide Shot)
+		renderWideShot();
+	}
+	else if (elapsedTime < 47.5f)
+	{
+		// 39 - 47 (39.0s to 47.0s): King Dhana Nanda normal speaking from throne
+		renderKingNormalShot();
+	}
+	else if (elapsedTime < 50.0f)
+	{
+		// 47 - 49 (47.0s to 49.0s): Standing Sage speaking
+		renderStandingSageQuestionShot();
+	}
+	else if (elapsedTime < 79.0f)
 	{
 		// 46.0s to 54.0s: Darbar Hall Wide Shot (Tension mounts across court)
 		renderWideShot();
-	}
-	else if (elapsedTime < 73.0f)
+	}	
+	else if (elapsedTime < 84.5f)
 	{
-		// 54.0s to 73.0s: Chanakya stinging philosophical rebuttal
-		renderChanakyaResponseShot();
+		// 39 - 47 (39.0s to 47.0s): King Dhana Nanda normal speaking from throne
+		renderKingNormalShot();
 	}
-	else if (elapsedTime < 86.0f)
+	else if (elapsedTime < 85.0f)
 	{
 		// 73.0s to 86.0s: King Dhana Nanda arrogant mocking laughter
 		renderKingLaughShot();
 	}
-	else if (elapsedTime < 92.5f)
+	else if (elapsedTime < 94.0f)
 	{
 		// 86.0s to 92.5s: Darbar Wide silence reaction
 		renderWideShot();
 	}
-	else if (elapsedTime < 106.0f)
+	else if (elapsedTime < 98.0f)
 	{
-		// 92.5s to 106.0s: Standing Person demanding deference
-		renderStandingSageQuestionShot();
+		// 86.0s to 92.5s: Darbar Wide silence reaction
+		renderKingAngryShot();
+	}
+	else if (elapsedTime < 101.0f)
+	{
+		// 86.0s to 92.5s: Darbar Wide silence reaction
+		renderWideShot();
+	}
+	else if (elapsedTime < 107.0f)
+	{
+		// 86.0s to 92.5s: Darbar Wide silence reaction
+		renderKingAngryShot();
 	}
 	else if (elapsedTime < 121.0f)
 	{
