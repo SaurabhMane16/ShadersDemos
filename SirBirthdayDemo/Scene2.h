@@ -11,4 +11,8 @@ void initScene2(void);
 void renderScene2(void);
 void updateScene2(void);
 
+// Cinematic Front-View Dialogue Shots (King's Perspective with Full Hall Environment)
+void renderChanakyaNormalShot(void);
+void renderChanakyaAngryShot(void);
+
 #endif // SCENE2_H

@@ -1419,3 +1419,110 @@ void updateScene2(void)
         rlMouthOpenHeight = 0.0f;
     }
 }
+
+
+// =============================================================================
+// CINEMATIC FRONT-VIEW SHOTS (CALLED DURING SCENE 3 DIALOGUE)
+// Shows Chanakya from King's perspective with the full darbar hall behind him
+// =============================================================================
+static void renderChanakyaFrontViewCommon(void)
+{
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+
+    // Position camera at King's stage looking down the hall at Chanakya (further back along Z)
+    gluLookAt(0.0f, 0.5f, -2.5f,
+              0.0f, 0.1f, -13.5f,
+              0.0f, 1.0f,  0.0f);
+
+    // Draw the full environment: floor, open doors, pillars, curtains, courtiers
+    drawRoom();
+    drawCarpetAndDoors();
+
+    for (float zOffset = -2.0f; zOffset >= -40.0f; zOffset -= 8.4f)
+    {
+        glPushMatrix();
+        glTranslatef(-6.0f, 1.7f, zOffset);
+        glRotatef(45.0f, 0.0f, 1.0f, 0.0f);
+        glScalef(2.0f, 2.5f, 2.0f);
+        drawPillarAndCurtain();
+        glPopMatrix();
+
+        glPushMatrix();
+        glTranslatef(6.0f, 1.7f, zOffset);
+        glRotatef(-45.0f, 0.0f, 1.0f, 0.0f);
+        glScalef(2.0f, 2.5f, 2.0f);
+        drawPillarAndCurtain();
+        glPopMatrix();
+    }
+    drawSideCharacters();
+
+    // Render Chanakya in front (positioned further back along Z-axis)
+    glPushMatrix();
+    glTranslatef(0.0f, -0.35f, -13.5f);
+    glScalef(0.82f, 0.82f, 0.82f);
+    drawChanakyaCharacter();
+    glPopMatrix();
+}
+
+// 1. Normal Speaking Shot (Calm arms, natural talking mouth, talking to King)
+void renderChanakyaNormalShot(void)
+{
+    rlAnimTime += 0.018f;
+    rlAnimMode = 3; // Custom dialog mode (prevents walk cycle override)
+    
+    // Calm, dignified sage posture (left arm relaxed down at side)
+    rlLeftShoulderRoll = 15.0f;
+    rlLeftShoulderPitch = 0.0f;
+    rlLeftElbowAngle = -5.0f;
+    rlRightShoulderRoll = -10.0f;
+    rlRightShoulderPitch = 0.0f;
+    rlRightElbowAngle = 10.0f;
+    rlLeftHipAngle = 0.0f;
+    rlRightHipAngle = 0.0f;
+    rlLeftKneeAngle = 0.0f;
+    rlRightKneeAngle = 0.0f;
+    rlHipBobY = 0.0f;
+
+    // Neutral dignified brow
+    rlEyebrowSlantY = 0.26f;
+
+    // Automatic internal mouth movement (no parameter needed!)
+    float speechWave = (0.5f + 0.5f * sinf(rlAnimTime * 2.8f)) *
+                       (0.6f + 0.4f * sinf(rlAnimTime * 1.2f));
+    rlMouthOpenHeight = 0.035f * speechWave;
+
+    doorAngle = 90.0f; // Ensure doors are fully open in background
+    renderChanakyaFrontViewCommon();
+}
+
+// 2. Angry Pointing Shot (Fierce face, pointing finger raised at King)
+void renderChanakyaAngryShot(void)
+{
+    rlAnimTime += 0.018f;
+    rlAnimMode = 3;
+
+    // Aggressive pointing stance (hand raised pointing at King)
+    rlLeftShoulderRoll = 125.0f + 2.0f * sinf(rlAnimTime * 1.5f);
+    rlLeftShoulderPitch = 0.0f;
+    rlLeftElbowAngle = -15.0f;
+    rlRightShoulderRoll = -10.0f;
+    rlRightShoulderPitch = 0.0f;
+    rlRightElbowAngle = 10.0f;
+    rlLeftHipAngle = 0.0f;
+    rlRightHipAngle = 0.0f;
+    rlLeftKneeAngle = 0.0f;
+    rlRightKneeAngle = 0.0f;
+    rlHipBobY = 0.0f;
+
+    // Fierce angry V-shaped eyebrow frown
+    rlEyebrowSlantY = 0.20f;
+
+    // Intense open-mouthed speaking
+    float speechWave = (0.5f + 0.5f * sinf(rlAnimTime * 3.2f)) *
+                       (0.6f + 0.4f * sinf(rlAnimTime * 1.5f));
+    rlMouthOpenHeight = 0.055f * speechWave;
+
+    doorAngle = 90.0f; // Ensure doors are fully open in background
+    renderChanakyaFrontViewCommon();
+}

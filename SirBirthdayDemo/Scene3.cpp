@@ -15,7 +15,9 @@
 #include <gl/GLU.h>
 
 #include "Scene3.h"
+#include "Scene2.h"
 #include "side_character.h"
+#include "Parnakuti.h"
 
 #pragma comment(lib, "opengl32.lib")
 #pragma comment(lib, "glu32.lib")
@@ -2626,25 +2628,35 @@ void renderScene3(void)
 	}
 	else if (elapsedTime < 94.0f)
 	{
-		// 86.0s to 92.5s: Darbar Wide silence reaction
+		
 		renderWideShot();
 	}
 	else if (elapsedTime < 98.0f)
 	{
-		// 86.0s to 92.5s: Darbar Wide silence reaction
+		
 		renderKingAngryShot();
 	}
 	else if (elapsedTime < 101.0f)
 	{
-		// 86.0s to 92.5s: Darbar Wide silence reaction
+		
 		renderWideShot();
 	}
-	else if (elapsedTime < 107.0f)
+	else if (elapsedTime < 112.0f)
 	{
-		// 86.0s to 92.5s: Darbar Wide silence reaction
+		
 		renderKingAngryShot();
 	}
+	else if (elapsedTime < 115.0f)
+	{
+		
+		renderWideShot();
+	}
 	else if (elapsedTime < 121.0f)
+	{
+		
+		renderKingAngryShot();
+	}
+	else if (elapsedTime < 124.0f)
 	{
 		// 106.0s to 121.0s: Chanakya warning of dharma and duty
 		renderChanakyaResponseShot();
@@ -2654,24 +2666,53 @@ void renderScene3(void)
 		// 121.0s to 138.0s: King Dhana Nanda speaks dismissively from throne
 		renderKingNormalShot();
 	}
-	else if (elapsedTime < 161.0f)
+	else if (elapsedTime < 145.0f)
 	{
 		// 138.0s to 161.0s: Standing Person delivering court decree
-		renderStandingSageQuestionShot();
-	}
-	else if (elapsedTime < 180.0f)
-	{
-		// 161.0s to 180.0s: Chanakya Historic Vow to unseat tyrant
 		renderChanakyaResponseShot();
 	}
-	else if (elapsedTime < 198.5f)
+	else if (elapsedTime < 153.0f)
 	{
-		// 180.0s to 198.5s: King Dhana Nanda boiling royal rage, gripping sword
+		// 121.0s to 138.0s: King Dhana Nanda speaks dismissively from throne
+		renderKingNormalShot();
+	}
+	else if (elapsedTime < 164.0f)
+	{
+		// 161.0s to 180.0s: Chanakya Historic Vow to unseat tyrant
+		renderChanakyaNormalShot();
+	}
+	else if (elapsedTime < 168.0f)
+	{
+		// 121.0s to 138.0s: King Dhana Nanda speaks dismissively from throne
+		renderKingNormalShot();
+	}
+	else if (elapsedTime < 175.0f)
+	{
+		// 161.0s to 180.0s: Chanakya Historic Vow to unseat tyrant
+		renderChanakyaAngryShot();
+	}
+	else if (elapsedTime < 176.5f)
+	{
 		renderKingAngryShot();
 	}
-	else
+	else if (elapsedTime < 184.0f)
 	{
-		// 198.5s+: Grand Finale Wide View
-		renderWideShot();
+		renderChanakyaNormalShot();
 	}
+	else if (elapsedTime < 188.0f)
+	{
+		renderKingAngryShot();
+	}
+	else if (elapsedTime < 194.0f)
+	{
+		renderChanakyaNormalShot();
+	}
+	else if (elapsedTime < 198.5f)
+	{		
+		glMatrixMode(GL_MODELVIEW);
+		glLoadIdentity();
+		glTranslatef(0.0f, 0.0f, -3.0f);
+		displayParnakuti();
+	}
+	
 }
