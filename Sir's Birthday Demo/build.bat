@@ -1,0 +1,3 @@
+cl.exe /c /EHsc BirthdayWishes.cpp coinFlip.cpp lalkila.cpp Scene2.cpp Scene3.cpp side_character.cpp Parnakuti.cpp Fort.cpp firstMap.cpp secondMap.cpp thirdMap.cpp fourthMap.cpp sanskrit_lettering.cpp SirPortrait.cpp GroupMembers.cpp IgnitedSlide.cpp SpecialThanks.cpp Shader.cpp TitleSlide.cpp
+rc.exe OGL.rc
+link.exe BirthdayWishes.obj coinFlip.obj lalkila.obj Scene2.obj Scene3.obj side_character.obj Parnakuti.obj Fort.obj firstMap.obj secondMap.obj thirdMap.obj fourthMap.obj sanskrit_lettering.obj SirPortrait.obj GroupMembers.obj IgnitedSlide.obj SpecialThanks.obj Shader.obj TitleSlide.obj OGL.res user32.lib gdi32.lib opengl32.lib glu32.lib winmm.lib /SUBSYSTEM:WINDOWS /OUT:OGL.exe
